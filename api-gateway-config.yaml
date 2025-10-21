@@ -1,0 +1,240 @@
+openapi: 3.0.0
+info:
+  title: Yandex Cloud AI API Gateway
+  description: API Gateway для интеграции с Yandex Cloud AI моделями
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://your-api-gateway.url
+    description: Production server
+  - url: https://staging-api-gateway.url
+    description: Staging server
+
+paths:
+  /v1/chat/completions:
+    post:
+      summary: Создание чат-завершения
+      description: Отправляет запрос к модели Yandex GPT для генерации ответа
+      operationId: createChatCompletion
+      tags:
+        - Chat Completions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+            examples:
+              basic_example:
+                summary: Базовый пример запроса
+                value:
+                  model: "yandexgpt"
+                  messages:
+                    - role: "user"
+                      content: "Привет! Как дела?"
+                  max_tokens: 100
+                  temperature: 0.7
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Неавторизованный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/models:
+    get:
+      summary: Получение списка доступных моделей
+      description: Возвращает список доступных моделей Yandex GPT
+      operationId: listModels
+      tags:
+        - Models
+      responses:
+        '200':
+          description: Список моделей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+
+components:
+  schemas:
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: Имя модели для использования
+          example: "yandexgpt"
+        messages:
+          type: array
+          description: Список сообщений в чате
+          items:
+            $ref: '#/components/schemas/Message'
+        max_tokens:
+          type: integer
+          description: Максимальное количество токенов в ответе
+          minimum: 1
+          maximum: 4000
+          default: 100
+        temperature:
+          type: number
+          description: Температура генерации (0.0 - 1.0)
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+        top_p:
+          type: number
+          description: Top-p параметр для nucleus sampling
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.9
+        stream:
+          type: boolean
+          description: Включить потоковый режим
+          default: false
+
+    Message:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+          description: Роль отправителя сообщения
+        content:
+          type: string
+          description: Содержимое сообщения
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор ответа
+        object:
+          type: string
+          description: Тип объекта
+          example: "chat.completion"
+        created:
+          type: integer
+          description: Временная метка создания
+        model:
+          type: string
+          description: Использованная модель
+        choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Choice'
+        usage:
+          $ref: '#/components/schemas/Usage'
+
+    Choice:
+      type: object
+      properties:
+        index:
+          type: integer
+          description: Индекс выбора
+        message:
+          $ref: '#/components/schemas/Message'
+        finish_reason:
+          type: string
+          enum: [stop, length, content_filter]
+          description: Причина завершения генерации
+
+    Usage:
+      type: object
+      properties:
+        prompt_tokens:
+          type: integer
+          description: Количество токенов в промпте
+        completion_tokens:
+          type: integer
+          description: Количество токенов в ответе
+        total_tokens:
+          type: integer
+          description: Общее количество токенов
+
+    ModelsResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          example: "list"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Идентификатор модели
+          example: "yandexgpt"
+        object:
+          type: string
+          example: "model"
+        created:
+          type: integer
+          description: Временная метка создания
+        owned_by:
+          type: string
+          description: Владелец модели
+          example: "yandex"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Сообщение об ошибке
+            type:
+              type: string
+              description: Тип ошибки
+            code:
+              type: string
+              description: Код ошибки
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API ключ для аутентификации
+
+security:
+  - ApiKeyAuth: []
+
+
+

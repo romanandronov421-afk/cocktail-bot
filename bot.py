@@ -1,7 +1,7 @@
 import os
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
+from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 import requests
@@ -10,11 +10,11 @@ from datetime import datetime
 from database import CocktailDatabase
 
 # Загружаем переменные окружения
-load_dotenv()
+load_dotenv('env_file.txt')
 
 # Инициализация бота
 bot = Bot(token=os.getenv('TELEGRAM_BOT_TOKEN'))
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 # Инициализация базы данных
 db = CocktailDatabase()
@@ -33,38 +33,48 @@ CURRENT_SEASON = 'autumn'
 # Базовые спирты
 BASE_SPIRITS = ['джин', 'водка', 'ром', 'виски', 'текила', 'коньяк', 'бренди']
 
-# XAI API конфигурация
-XAI_API_KEY = os.getenv('XAI_API_KEY')
-XAI_API_URL = "https://api.x.ai/v1/chat/completions"
+# Yandex Cloud AI конфигурация
+YANDEX_API_KEY = os.getenv('YANDEX_API_KEY')
+YANDEX_FOLDER_ID = os.getenv('FOLDER_ID')
+YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
-async def call_xai_api(prompt: str) -> str:
-    """Вызов XAI API для генерации рецептов"""
+async def call_yandex_api(prompt: str) -> str:
+    """Вызов Yandex Cloud AI API для генерации рецептов"""
     headers = {
-        "Authorization": f"Bearer {XAI_API_KEY}",
+        "Authorization": f"Api-Key {YANDEX_API_KEY}",
         "Content-Type": "application/json"
     }
     
     data = {
-        "model": "grok-beta",
+        "modelUri": f"gpt://{YANDEX_FOLDER_ID}/yandexgpt",
+        "completionOptions": {
+            "stream": False,
+            "temperature": 0.7,
+            "maxTokens": 1000
+        },
         "messages": [
             {
                 "role": "user",
-                "content": prompt
+                "text": prompt
             }
-        ],
-        "max_tokens": 1000,
-        "temperature": 0.7
+        ]
     }
     
     try:
-        response = requests.post(XAI_API_URL, headers=headers, json=data)
+        response = requests.post(YANDEX_API_URL, headers=headers, json=data)
         response.raise_for_status()
         result = response.json()
-        return result['choices'][0]['message']['content']
+        
+        # Извлекаем текст ответа из структуры Yandex API
+        if 'result' in result and 'alternatives' in result['result']:
+            return result['result']['alternatives'][0]['message']['text']
+        else:
+            return "Ошибка: неожиданный формат ответа от Yandex API"
+            
     except Exception as e:
-        return f"Ошибка при обращении к AI: {str(e)}"
+        return f"Ошибка при обращении к Yandex AI: {str(e)}"
 
-@dp.message_handler(commands=['start'])
+@dp.message(Command('start'))
 async def start_command(message: types.Message):
     """Обработчик команды /start"""
     keyboard = InlineKeyboardMarkup(row_width=2)
@@ -103,7 +113,7 @@ async def start_command(message: types.Message):
     
     await message.reply(welcome_text, reply_markup=keyboard, parse_mode='Markdown')
 
-@dp.message_handler(commands=['help'])
+@dp.message(Command('help'))
 async def help_command(message: types.Message):
     """Обработчик команды /help"""
     help_text = """
@@ -146,7 +156,7 @@ async def help_command(message: types.Message):
     """
     await message.reply(help_text, parse_mode='Markdown')
 
-@dp.message_handler(commands=['recipe'])
+@dp.message(Command('recipe'))
 async def recipe_command(message: types.Message):
     """Обработчик команды /recipe"""
     args = message.text.split()[1:] if len(message.text.split()) > 1 else []
@@ -184,12 +194,12 @@ async def recipe_command(message: types.Message):
     await message.reply("🍹 Создаю идеальный рецепт для вас...")
     
     try:
-        recipe = await call_xai_api(prompt)
+        recipe = await call_yandex_api(prompt)
         await message.reply(recipe)
     except Exception as e:
         await message.reply(f"Извините, произошла ошибка: {str(e)}")
 
-@dp.message_handler(commands=['menu'])
+@dp.message(Command('menu'))
 async def menu_command(message: types.Message):
     """Обработчик команды /menu"""
     args = message.text.split()[1:] if len(message.text.split()) > 1 else []
@@ -231,7 +241,7 @@ async def generate_seasonal_menu(message: types.Message, count: int):
     """
     
     try:
-        menu = await call_xai_api(prompt)
+        menu = await call_yandex_api(prompt)
         await message.reply(menu)
     except Exception as e:
         await message.reply(f"Ошибка при создании меню: {str(e)}")
@@ -264,12 +274,12 @@ async def generate_conceptual_menu(message: types.Message, count: int):
     """
     
     try:
-        menu = await call_xai_api(prompt)
+        menu = await call_yandex_api(prompt)
         await message.reply(menu)
     except Exception as e:
         await message.reply(f"Ошибка при создании меню: {str(e)}")
 
-@dp.message_handler(commands=['trends'])
+@dp.message(Command('trends'))
 async def trends_command(message: types.Message):
     """Обработчик команды /trends"""
     trends_text = """
@@ -308,7 +318,7 @@ async def trends_command(message: types.Message):
     """
     await message.reply(trends_text, parse_mode='Markdown')
 
-@dp.message_handler(commands=['news'])
+@dp.message(Command('news'))
 async def news_command(message: types.Message):
     """Обработчик команды /news"""
     news_text = """
@@ -331,7 +341,7 @@ async def news_command(message: types.Message):
     """
     await message.reply(news_text, parse_mode='Markdown')
 
-@dp.message_handler(commands=['random'])
+@dp.message(Command('random'))
 async def random_command(message: types.Message):
     """Обработчик команды /random"""
     import random
@@ -369,12 +379,12 @@ async def random_command(message: types.Message):
     await message.reply("🎲 Создаю для вас сюрприз-коктейль...")
     
     try:
-        recipe = await call_xai_api(prompt)
+        recipe = await call_yandex_api(prompt)
         await message.reply(recipe)
     except Exception as e:
         await message.reply(f"Извините, произошла ошибка: {str(e)}")
 
-@dp.message_handler(commands=['seasonal'])
+@dp.message(Command('seasonal'))
 async def seasonal_command(message: types.Message):
     """Обработчик команды /seasonal"""
     seasonal_ingredients = SEASONAL_INGREDIENTS[CURRENT_SEASON]
@@ -405,12 +415,12 @@ async def seasonal_command(message: types.Message):
     await message.reply(f"🍂 Создаю сезонные коктейли для {current_season_name}...")
     
     try:
-        recipes = await call_xai_api(prompt)
+        recipes = await call_yandex_api(prompt)
         await message.reply(recipes)
     except Exception as e:
         await message.reply(f"Ошибка при создании сезонных коктейлей: {str(e)}")
 
-@dp.message_handler(commands=['pairing'])
+@dp.message(Command('pairing'))
 async def pairing_command(message: types.Message):
     """Обработчик команды /pairing"""
     args = message.text.split()[1:] if len(message.text.split()) > 1 else []
@@ -444,12 +454,12 @@ async def pairing_command(message: types.Message):
     await message.reply(f"🍽️ Подбираю коктейль для {dish}...")
     
     try:
-        pairing = await call_xai_api(prompt)
+        pairing = await call_yandex_api(prompt)
         await message.reply(pairing)
     except Exception as e:
         await message.reply(f"Ошибка при подборе коктейля: {str(e)}")
 
-@dp.message_handler(commands=['create_recipe'])
+@dp.message(Command('create_recipe'))
 async def create_recipe_command(message: types.Message):
     """Обработчик команды /create_recipe"""
     await message.reply("""
@@ -468,7 +478,7 @@ async def create_recipe_command(message: types.Message):
 Просто напишите ваши пожелания, и я создам рецепт!
     """, parse_mode='Markdown')
 
-@dp.message_handler(commands=['search'])
+@dp.message(Command('search'))
 async def search_command(message: types.Message):
     """Обработчик команды /search"""
     args = message.text.split()[1:] if len(message.text.split()) > 1 else []
@@ -502,7 +512,7 @@ async def search_command(message: types.Message):
     except Exception as e:
         await message.reply(f"Ошибка при поиске: {str(e)}")
 
-@dp.message_handler(commands=['history'])
+@dp.message(Command('history'))
 async def history_command(message: types.Message):
     """Обработчик команды /history"""
     args = message.text.split()[1:] if len(message.text.split()) > 1 else []
@@ -536,54 +546,54 @@ async def history_command(message: types.Message):
     """
     
     try:
-        history = await call_xai_api(prompt)
+        history = await call_yandex_api(prompt)
         await message.reply(f"**История коктейля {cocktail_name}:**\n\n{history}", parse_mode='Markdown')
     except Exception as e:
         await message.reply(f"Ошибка при получении истории: {str(e)}")
 
-@dp.callback_query_handler(lambda c: c.data == 'recipe')
+@dp.callback_query(lambda c: c.data == 'recipe')
 async def process_callback_recipe(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Рецепт'"""
     await callback_query.answer()
     await recipe_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'menu')
+@dp.callback_query(lambda c: c.data == 'menu')
 async def process_callback_menu(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Меню'"""
     await callback_query.answer()
     await menu_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'trends')
+@dp.callback_query(lambda c: c.data == 'trends')
 async def process_callback_trends(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Тренды'"""
     await callback_query.answer()
     await trends_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'news')
+@dp.callback_query(lambda c: c.data == 'news')
 async def process_callback_news(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Новости'"""
     await callback_query.answer()
     await news_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'help')
+@dp.callback_query(lambda c: c.data == 'help')
 async def process_callback_help(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Помощь'"""
     await callback_query.answer()
     await help_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'random')
+@dp.callback_query(lambda c: c.data == 'random')
 async def process_callback_random(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Случайный'"""
     await callback_query.answer()
     await random_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'seasonal')
+@dp.callback_query(lambda c: c.data == 'seasonal')
 async def process_callback_seasonal(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Сезонные'"""
     await callback_query.answer()
     await seasonal_command(callback_query.message)
 
-@dp.callback_query_handler(lambda c: c.data == 'pairing')
+@dp.callback_query(lambda c: c.data == 'pairing')
 async def process_callback_pairing(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Фудпейринг'"""
     await callback_query.answer()
@@ -600,13 +610,13 @@ async def process_callback_pairing(callback_query: types.CallbackQuery):
         parse_mode='Markdown'
     )
 
-@dp.callback_query_handler(lambda c: c.data == 'create_recipe')
+@dp.callback_query(lambda c: c.data == 'create_recipe')
 async def process_callback_create_recipe(callback_query: types.CallbackQuery):
     """Обработчик кнопки 'Создать рецепт'"""
     await callback_query.answer()
     await create_recipe_command(callback_query.message)
 
-@dp.message_handler()
+@dp.message()
 async def handle_other_messages(message: types.Message):
     """Обработчик всех остальных сообщений"""
     text = message.text.lower()
@@ -637,7 +647,7 @@ async def handle_other_messages(message: types.Message):
         """
         
         try:
-            recipe = await call_xai_api(prompt)
+            recipe = await call_yandex_api(prompt)
             await message.reply(recipe)
         except Exception as e:
             await message.reply(f"Ошибка при создании рецепта: {str(e)}")
@@ -667,7 +677,7 @@ async def handle_other_messages(message: types.Message):
         """
         
         try:
-            pairing = await call_xai_api(prompt)
+            pairing = await call_yandex_api(prompt)
             await message.reply(pairing)
         except Exception as e:
             await message.reply(f"Ошибка при подборе коктейля: {str(e)}")
@@ -686,7 +696,13 @@ async def handle_other_messages(message: types.Message):
         parse_mode='Markdown'
     )
 
-if __name__ == '__main__':
+async def main():
+    """Основная функция запуска бота"""
     print("🍹 MixMatrixBot запускается...")
     print("Нажмите Ctrl+C для остановки")
-    executor.start_polling(dp, skip_updates=True)
+    
+    # Запускаем бота
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(main())

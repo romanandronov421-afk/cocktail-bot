@@ -5,9 +5,10 @@
 
 import os
 import sys
+import asyncio
 from database import init_sample_data
 
-def main():
+async def main():
     """Основная функция запуска бота"""
     print("🍹 MixMatrixBot - Запуск...")
     
@@ -16,7 +17,8 @@ def main():
         print("❌ Файл .env не найден!")
         print("Создайте файл .env с токенами:")
         print("TELEGRAM_BOT_TOKEN=ваш_токен")
-        print("XAI_API_KEY=ваш_ключ")
+        print("YANDEX_API_KEY=ajegpjgsbgidg7av4mfj")
+        print("FOLDER_ID=ajels2ea51569prr6uvb")
         return
     
     # Проверяем наличие базы данных
@@ -26,10 +28,10 @@ def main():
     
     # Импортируем и запускаем бота
     try:
-        from bot import executor, dp
+        from bot import main as bot_main
         print("✅ Бот готов к работе!")
         print("Нажмите Ctrl+C для остановки")
-        executor.start_polling(dp, skip_updates=True)
+        await bot_main()
     except ImportError as e:
         print(f"❌ Ошибка импорта: {e}")
         print("Убедитесь, что все зависимости установлены: pip install -r requirements.txt")
@@ -37,4 +39,4 @@ def main():
         print(f"❌ Ошибка запуска: {e}")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

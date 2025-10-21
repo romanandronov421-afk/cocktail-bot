@@ -1,0 +1,86 @@
+# Docker Compose конфигурация для API Gateway
+version: '3.8'
+
+services:
+  api-gateway:
+    image: nginx:alpine
+    container_name: yandex-ai-gateway
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    environment:
+      - YANDEX_API_KEY=${YANDEX_API_KEY}
+      - FOLDER_ID=${FOLDER_ID}
+    restart: unless-stopped
+    networks:
+      - ai-network
+
+  proxy-service:
+    image: python:3.11-slim
+    container_name: yandex-ai-proxy
+    working_dir: /app
+    volumes:
+      - ./yandex_ai_gateway.py:/app/yandex_ai_gateway.py:ro
+      - ./requirements.txt:/app/requirements.txt:ro
+      - ./.env:/app/.env:ro
+    command: >
+      sh -c "pip install -r requirements.txt && 
+             python -c '
+             import asyncio
+             from yandex_ai_gateway import YandexAIService
+             
+             async def run_server():
+                 from aiohttp import web
+                 
+                 service = YandexAIService()
+                 
+                 async def chat_completions(request):
+                     data = await request.json()
+                     response = await service.generate_response(
+                         data.get(\"messages\", [{}])[-1].get(\"content\", \"\"),
+                         max_tokens=data.get(\"max_tokens\", 100),
+                         temperature=data.get(\"temperature\", 0.7)
+                     )
+                     return web.json_response({
+                         \"choices\": [{\"message\": {\"content\": response}}],
+                         \"usage\": {\"total_tokens\": len(response.split())}
+                     })
+                 
+                 app = web.Application()
+                 app.router.add_post(\"/v1/chat/completions\", chat_completions)
+                 
+                 runner = web.AppRunner(app)
+                 await runner.setup()
+                 site = web.TCPSite(runner, \"0.0.0.0\", 8000)
+                 await site.start()
+                 
+                 print(\"Server started on port 8000\")
+                 await asyncio.Future()  # run forever
+             
+             asyncio.run(run_server())
+             '"
+    ports:
+      - "8000:8000"
+    environment:
+      - YANDEX_API_KEY=${YANDEX_API_KEY}
+      - FOLDER_ID=${FOLDER_ID}
+      - API_GATEWAY_URL=${API_GATEWAY_URL}
+    restart: unless-stopped
+    networks:
+      - ai-network
+
+networks:
+  ai-network:
+    driver: bridge
+
+# Переменные окружения для Docker Compose
+# Создайте файл .env в той же папке с содержимым:
+# YANDEX_API_KEY=ваш_ключ
+# FOLDER_ID=ваш_id
+# API_GATEWAY_URL=http://proxy-service:8000
+
+
+
