@@ -1,0 +1,79 @@
+warning: in the working copy of 'bot.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'env_file.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'run_bot.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'setup_and_run.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'start_bot.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'test_bot.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'yandex_ai_gateway.py', LF will be replaced by CRLF the next time Git touches it
+ACTIVATE_VENV_GUIDE.md
+ADDITIONAL_EL_COPITAS_INTEGRATION_REPORT.md
+API_GATEWAY_README.md
+BARTENDER_BIBLE_INTEGRATION_REPORT.md
+BOT_RUNNING.md
+COCKTAIL_CODE_DATABASE_REPORT.md
+COMPLETE_KNOWLEDGE_GUIDE.md
+CORRECT_LAUNCH.md
+CREATE_ENV_MANUAL_FINAL.md
+CREATE_ENV_STEP_BY_STEP.md
+EL_COPITAS_INTEGRATION_REPORT.md
+FINAL_BOT_REPORT.md
+FINAL_CONFIG_GUIDE.md
+FINAL_FIX_GUIDE.md
+FINAL_INTEGRATION_REPORT.md
+FINAL_LAUNCH_GUIDE.md
+FINAL_SETUP_GUIDE.md
+FIX_BOT_ERRORS.md
+FIX_CONFLICT_GUIDE.md
+FIX_DATABASE.md
+FIX_ENCODING.md
+FIX_PATH_GUIDE.md
+FLAVOR_BIBLE_INTEGRATION_REPORT.md
+HOW_TO_ADD_KNOWLEDGE.md
+IBA_INTEGRATION_REPORT.md
+LAUNCH_BOT.md
+LAUNCH_INSTRUCTIONS.md
+LAUNCH_VIA_CMD.md
+LIQUID_INTELLIGENCE_INTEGRATION_REPORT.md
+MANUAL_START.md
+MIXTRIX_UPDATE_REPORT.md
+RENAME_TO_ENV.md
+TESTING_GUIDE.md
+UPDATED_STARTUP_GUIDE.md
+YANDEX_INTEGRATION_GUIDE.md
+add_additional_el_copitas_recipes.py
+add_aperitif_recipes.py
+add_bartender_bible.py
+add_cocktail_code_techniques.py
+add_el_copitas_recipes.py
+add_flavor_bible.py
+add_iba_recipes.py
+add_liquid_intelligence.py
+add_recipes.py
+api-gateway-config.yaml
+auto_start_bot.py
+bot.py
+config.example.ini
+config.ini
+create_env_file.py
+create_env_new.py
+create_env_now.py
+create_env_simple.py
+create_guides.py
+database.py
+demonstrate_bot.py
+docker-compose.yml
+env_file.txt
+fix_secrets.py
+interactive_demo.py
+launch_with_py.py
+nginx.conf
+run_bot.py
+setup_and_run.py
+setup_bot.py
+simple_start.py
+start_bot.py
+start_bot_simple.py
+test_bot.py
+test_yandex_api.py
+yandex_ai_gateway.py
